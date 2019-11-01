@@ -1,0 +1,18 @@
+#message
+  h1 Sensor Data
+  table
+    tr
+      td Moisture Sensor 1
+      td Moisture Sensor 2
+      td Light Sensor
+      td Temperature Sensor
+      td Humidity Sensor
+      td Time Sampled
+    each sensorDataObj in sensorData
+      tr
+        td= sensorDataObj.moisture1
+        td= sensorDataObj.moisture2
+        td= sensorDataObj.light
+        td= sensorDataObj.temp
+        td= sensorDataObj.humidity
+        td= new Date(sensorDataObj.timestamp)
