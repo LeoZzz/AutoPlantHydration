@@ -11,9 +11,9 @@ routes.get('/status', async (req, res) => {
 });
 
 routes.post('/sensor-data', async (req, res) => {
-  const { moisture1, moisture2, humidity, light, temp } = req.body
+  const { moisture, light } = req.body
   db.get('sensorData')
-    .push({ moisture1, moisture2, humidity, light, temp, timestamp: new Date() })
+    .push({ moisture, light, timestamp: new Date() })
     .write()
   res.json({
     status: 'Success',
