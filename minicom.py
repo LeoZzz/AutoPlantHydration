@@ -60,7 +60,7 @@ def read_sensor_data():
     moisture_sensor = split_data[20]
     return [light_sensor, moisture_sensor]
 
-# activates pump for a given amount of time when moisture 
+# activates pump for a given amount of time when moisture
 # sensor reads under a certain threshold
 def test_moisture(m):
     if m < config_moisture_threshold:
@@ -72,13 +72,13 @@ def test_moisture(m):
 # activates leds/pieso for a given amount of time when light
 # sensor reads under a certain threshold
 def test_light_leds(l):
-    if l < config_moisture_threshold:
+    if l < config_light_threshold:
         GPIO.output(leds, 0)
         time.sleep(config_leds_time)
         GPIO.output(leds, 1)
         print "Leds were on"
-    
-    if l > 2 * config_moisture_threshold:
+
+    if l > 2 * config_light_threshold:
         GPIO.output(pieso, 0)
         time.sleep(config_pieso_time)
         GPIO.output(pieso, 1)
