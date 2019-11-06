@@ -19,6 +19,8 @@ GPIO.setup(piezo, GPIO.OUT)
 config_moisture_threshold = 250
 config_light_threshold = 250
 config_water_time = 1
+config_leds_time = 1
+config_pieso_time = 1
 
 # Serial data config
 ser = serial.Serial(
@@ -62,10 +64,25 @@ def read_sensor_data():
 # sensor reads under a certain threshold
 def test_moisture(m):
     if m < config_moisture_threshold:
-        # GPIO.output(pump, 0)
-        # time.sleep(config_water_time)
-        # GPIO.output(pump, 1)
+        GPIO.output(pump, 0)
+        time.sleep(config_water_time)
+        GPIO.output(pump, 1)
         print "Plant has been watered!"
+
+# activates leds/pieso for a given amount of time when light
+# sensor reads under a certain threshold
+def test_light_leds(l):
+    if l < config_light_threshold:
+        GPIO.output(leds, 0)
+        time.sleep(config_leds_time)
+        GPIO.output(leds, 1)
+        print "Leds were on"
+
+    if l > 2 * config_light_threshold:
+        GPIO.output(pieso, 0)
+        time.sleep(config_pieso_time)
+        GPIO.output(pieso, 1)
+        print "pieso was buzzed"
 
 # Posts sensor data to web service
 def upload_data(light, moisture):
@@ -92,15 +109,15 @@ def moisture_level(m):
         return "needs water now"
 
 # Prints a friendly text version of the status of the
-# moisture sensor
+# light sensor
 # used for console print and push notification
 def light_level(l):
     if l > config_light_threshold * 2:
         return "bright"
     elif l <= config_light_threshold * 2 and l > config_light_threshold:
-        return "dark"
-    elif l < config_light_threshold:
         return "dim"
+    elif l < config_light_threshold:
+        return "dark"
 
 # Main script loop
 while True:
