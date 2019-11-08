@@ -42,6 +42,7 @@ def read_sensor_data():
     while continue_reading:
         # Read a single line from the serial port
         new_line = ser.readline()
+        print new_line
         # check if current line is empty array
         if not new_line.strip():
             # break loop
@@ -69,7 +70,7 @@ def test_moisture(m):
         GPIO.output(pump, 1)
         print "Plant has been watered!"
 
-# activates leds/pieso for a given amount of time when light
+# activates leds/piezo for a given amount of time when light
 # sensor reads under a certain threshold
 def test_light_leds(l):
     if l < config_light_threshold:
@@ -79,10 +80,10 @@ def test_light_leds(l):
         print "Leds were on"
 
     if l > 2 * config_light_threshold:
-        GPIO.output(pieso, 0)
+        GPIO.output(piezo, 0)
         time.sleep(config_pieso_time)
-        GPIO.output(pieso, 1)
-        print "pieso was buzzed"
+        GPIO.output(piezo, 1)
+        print "Piezo was buzzed"
 
 # Posts sensor data to web service
 def upload_data(light, moisture):
@@ -125,6 +126,7 @@ while True:
     print "Moisture status of plant: " + moisture_level(moisture)
     print "Light level on plant: " + light_level(light)
     test_moisture(moisture)
+    test_light_leds(light)
 
     try:
         upload_data(light, moisture)

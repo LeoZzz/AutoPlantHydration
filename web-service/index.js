@@ -3,6 +3,8 @@ const cors = require('cors')
 const express = require('express')
 const routes = require('./routes')
 const db = require('./db')
+require('dotenv').config()
+require('./jobs')
 
 const WebService = express()
 
@@ -24,6 +26,5 @@ WebService.get('/', (req, res) => {
   res.render('index', { sensorData })
 })
 WebService.use('/api', routes)
-
 
 WebService.listen(3000, () => console.log('Application is now running!'))
