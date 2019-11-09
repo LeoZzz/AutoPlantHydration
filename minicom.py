@@ -4,9 +4,9 @@ import serial
 import time
 
 # GPIO outpins
-pump = 14
-leds = 15
-piezo = 16
+pump = 16
+leds = 20
+piezo = 21
 
 # GPIO config
 GPIO.setmode(GPIO.BCM)
@@ -17,7 +17,7 @@ GPIO.setup(piezo, GPIO.OUT)
 
 # Script config values
 config_moisture_threshold = 250
-config_light_threshold = 250
+config_light_threshold = 30
 config_water_time = 1
 config_leds_time = 1
 config_pieso_time = 1
@@ -42,7 +42,6 @@ def read_sensor_data():
     while continue_reading:
         # Read a single line from the serial port
         new_line = ser.readline()
-        print new_line
         # check if current line is empty array
         if not new_line.strip():
             # break loop
@@ -59,27 +58,31 @@ def read_sensor_data():
 
     light_sensor = split_data[17]
     moisture_sensor = split_data[20]
-    return [light_sensor, moisture_sensor]
+    try:
+        int(light_sensor)
+    except:
+        return [-1, -1]
+        return [light_sensor, moisture_sensor]
 
 # activates pump for a given amount of time when moisture
 # sensor reads under a certain threshold
 def test_moisture(m):
-    if m < config_moisture_threshold:
-        GPIO.output(pump, 0)
-        time.sleep(config_water_time)
+    if int(m) < config_moisture_threshold:
         GPIO.output(pump, 1)
+        time.sleep(config_water_time)
+        GPIO.output(pump, 0)
         print "Plant has been watered!"
 
 # activates leds/piezo for a given amount of time when light
 # sensor reads under a certain threshold
 def test_light_leds(l):
-    if l < config_light_threshold:
+    if int(l) > 2 * config_light_threshold:
         GPIO.output(leds, 0)
         time.sleep(config_leds_time)
         GPIO.output(leds, 1)
         print "Leds were on"
 
-    if l > 2 * config_light_threshold:
+    if int(l) > 2 * config_light_threshold:
         GPIO.output(piezo, 0)
         time.sleep(config_pieso_time)
         GPIO.output(piezo, 1)
@@ -96,7 +99,7 @@ def upload_data(light, moisture):
     );
 
     if r.status_code == 200:
-        print "Data uploaded to web service"
+        print("Data uploaded to web service")
 
 # Prints a friendly text version of the status of the
 # moisture sensor
@@ -120,15 +123,19 @@ def light_level(l):
     elif l < config_light_threshold:
         return "dark"
 
+def bytes2int(byes):
+    result=0
+    for b in byes:
+        result = result * 256 + int(b)
+    return result
+
 # Main script loop
 while True:
     [light, moisture] = read_sensor_data()
-    print "Moisture status of plant: " + moisture_level(moisture)
-    print "Light level on plant: " + light_level(light)
     test_moisture(moisture)
     test_light_leds(light)
 
     try:
         upload_data(light, moisture)
     except Exception as ex:
-        print "There was an error uploading the sensor data"
+        print("There was an error uploading the sensor data")
