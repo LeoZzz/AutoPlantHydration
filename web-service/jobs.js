@@ -48,50 +48,27 @@ function sendPushoverMessage({ message, title } = {}) {
   })
 }
 
-function avgSensorDataLastMinute() {
-  // sensor data from the past minute
-  const sensorData = db.get('sensorData')
+// sums light and moisture sensor data
+const sensorSums = sensorData => ({
+  sensorLightSum: sensorData.reduce((accumulator, { light }) => accumulator + light, 0),
+  sensorMoistureSum: sensorData.reduce((accumulator, { moisture }) => accumulator + moisture, 0),
+})
+
+function getPastSensorData(timeframe) {
+  const pastTimeframe = subMilliseconds(new Date(), timeframe)
+  return db.get('sensorData')
     .value()
-    .filter(data => isBefore(subMilliseconds(new Date(), 60000), new Date(data.timestamp)))
-
-  // sum light sensor values
-  let sensorLightSum = 0
-  sensorData.forEach(({ light }) =>
-    sensorLightSum += light
-  )
-
-  // sum moisture sensor values
-  let sensorMoistureSum = 0
-  sensorData.forEach(({ moisture }) =>
-    sensorMoistureSum += moisture
-  )
-
-  // take the average of both sensor sums
-  // is either return NaN (no data found), return 0 by default
-  return {
-    avgSensorLight: Math.round(sensorLightSum / sensorData.length) || 0,
-    avgSensorMoisture: Math.round(sensorMoistureSum / sensorData.length) || 0
-  }
+    .filter(({ timestamp }) =>
+      isBefore(pastTimeframe, new Date(timestamp))
+    )
 }
 
-function avgSensorDataLastHour() {
-  // sensor data from the past hour
-  let sensorData = db.get('sensorData').value()
-  sensorData = sensorData.filter(data =>
-    isBefore(subMilliseconds(new Date(), 3600000), new Date(data.timestamp))
-  )
+function avgSensorDataPastTimeframe(timeframe) {
+  // sensor data from the past minute
+  const sensorData = getPastSensorData(timeframe)
 
   // sum light sensor values
-  let sensorLightSum = 0
-  sensorData.forEach(({ light }) =>
-    sensorLightSum += light
-  )
-
-  // sum moisture sensor values
-  let sensorMoistureSum = 0
-  sensorData.forEach(({ moisture }) =>
-    sensorMoistureSum += moisture
-  )
+  const { sensorLightSum, sensorMoistureSum } = sensorSums(sensorData)
 
   // take the average of both sensor sums
   // is either return NaN (no data found), return 0 by default
@@ -102,47 +79,58 @@ function avgSensorDataLastHour() {
 }
 
 function hourlyUpdate() {
-  const { avgSensorLight, avgSensorMoisture } = avgSensorDataLastHour()
-  console.log("TCL: hourlyUpdate -> avgSensorLight, avgSensorMoisture", avgSensorLight, avgSensorMoisture)
+  const { avgSensorLight, avgSensorMoisture } = avgSensorDataPastTimeframe(3600000)
   const lightLevelMessage = `Average Light Level: ${lightLevel(avgSensorLight)}`
   const moistureLevelMessage = `Average Moisture Level: ${moistureLevel(avgSensorMoisture)}`
 
   sendPushoverMessage({
-    message: `${lightLevelMessage}<br>${moistureLevelMessage}`,
+    message: `${lightLevelMessage}\n${moistureLevelMessage}`,
     title: 'Auto Plant Hydration - Hourly Update'
   })
 }
 
 function criticalUpdate() {
-  const { avgSensorLight, avgSensorMoisture } = avgSensorDataLastMinute
+  const { avgSensorLight, avgSensorMoisture } = avgSensorDataPastTimeframe(60000)
   const notifiedLowLight = db.get('notifiedLowLight').value()
   const notifiedLowMoisture = db.get('notifiedLowMoisture').value()
 
-  let message = ''
+  const messages = []
 
+  // moisture sensor has gone below threshold, and the status check has not
+  // yet been set in the database. this ensures that a notification will only
+  // go out once after the threshold has been breached
   if (avgSensorMoisture < MOISTURE_THRESHOLD && notifiedLowMoisture === 0) {
-    message += 'Warning - Low Moisture Level<br>'
+    messages.push('Warning - Low Moisture Level')
     db.set('notifiedLowMoisture', true).write()
+  // moisture sensor has gone above threshold, and the status check has been set
+  // in the database. this ensures that a notification will only go out once
+  // after the threshold has been breached
   } else if (avgSensorMoisture >= MOISTURE_THRESHOLD && notifiedLowMoisture === 1) {
-    message += 'Update - Moisture Level Adequate<br>'
+    messages.push('Update - Moisture Level Adequate')
     db.set('notifiedLowMoisture', false).write()
   }
 
+  // light sensor has gone below threshold, and the status check has not
+  // yet been set in the database. this ensures that a notification will only
+  // go out once after the threshold has been breached
   if (avgSensorLight < LIGHT_THRESHOLD && notifiedLowLight === 0) {
-    message += 'Warning - Low Light Level<br>'
+    messages.push('Warning - Low Light Level')
     db.set('notifiedLowLight', true).write()
+  // light sensor has gone above threshold, and the status check has been set
+  // in the database. this ensures that a notification will only go out once
+  // after the threshold has been breached
   } else if (avgSensorLight >= LIGHT_THRESHOLD && notifiedLowLight === 1) {
-    message += 'Update - Light Level Adequate<br>'
+    messages.push('Update - Light Level Adequate')
     db.set('notifiedLowLight', false).write()
   }
 
-  if (message.length > 0) {
+  if (messages.length > 0) {
     sendPushoverMessage({
-      message,
+      message: messages.join('\n'),
       title: 'Auto Plant Hydration - Critical Update'
     })
   }
-  console.log('No message to send')
+  console.log('No critical update to send')
 }
 
 // hourly update of current status of plant

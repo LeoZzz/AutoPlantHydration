@@ -1,9 +1,11 @@
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const express = require('express')
+const format = require('date-fns/format')
+require('dotenv').config()
+
 const routes = require('./routes')
 const db = require('./db')
-require('dotenv').config()
 require('./jobs')
 
 const WebService = express()
@@ -23,8 +25,8 @@ WebService.set('view engine', 'pug')
 
 WebService.get('/', (req, res) => {
   const sensorData = db.get('sensorData').value()
-  res.render('index', { sensorData })
+  res.render('index', { format, sensorData })
 })
 WebService.use('/api', routes)
 
-WebService.listen(3000, () => console.log('Application is now running!'))
+WebService.listen(3000, () => console.log('Application is now running on port 3000'))

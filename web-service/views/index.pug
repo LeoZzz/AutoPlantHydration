@@ -2,17 +2,11 @@
   h1 Sensor Data
   table
     tr
-      td Moisture Sensor 1
-      td Moisture Sensor 2
+      td Moisture Sensor
       td Light Sensor
-      td Temperature Sensor
-      td Humidity Sensor
       td Time Sampled
     each sensorDataObj in sensorData
       tr
-        td= sensorDataObj.moisture1
-        td= sensorDataObj.moisture2
+        td= sensorDataObj.moisture
         td= sensorDataObj.light
-        td= sensorDataObj.temp
-        td= sensorDataObj.humidity
-        td= new Date(sensorDataObj.timestamp)
+        td= format(new Date(sensorDataObj.timestamp), 'MMMM do, yyyy - h:mma')
