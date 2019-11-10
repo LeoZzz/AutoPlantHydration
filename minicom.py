@@ -17,7 +17,7 @@ GPIO.setup(piezo, GPIO.OUT)
 
 # Script config values
 config_moisture_threshold = 250
-config_light_threshold = 30
+config_light_threshold = 750
 config_water_time = 1
 config_leds_time = 1
 config_pieso_time = 1
@@ -37,8 +37,13 @@ ser = serial.Serial(
 def read_sensor_data():
     # remains true until empty array is sent
     continue_reading = True
+
     # Data chunk
-    line = ""
+    line = {
+        "moisture": -1,
+        "light": -1
+    }
+
     while continue_reading:
         # Read a single line from the serial port
         new_line = ser.readline()
@@ -47,46 +52,48 @@ def read_sensor_data():
             # break loop
             continue_reading = False
         else:
-            # append current line to chunk of data
-            line = line + new_line
+            new_line_split = new_line.split()
+            if len(new_line_split) >= 2:
+                ## check if line includes serial data for moisture sensor
+                if new_line_split[1] == 'VAUX06':
+                    line["moisture"] = int(new_line_split[2])
+                ## check if line includes serial data for light sensor
+                if new_line_split[1] == 'VAUX15':
+                    line["light"] = int(new_line_split[2])
 
-    split_data = line.split()
-    # some chunks sent do not include valid sensor data
-    # default response is to send a negative value
-    if len(split_data) < 21:
-        return [-1, -1]
-
-    light_sensor = split_data[17]
-    moisture_sensor = split_data[20]
-    try:
-        int(light_sensor)
-    except:
-        return [-1, -1]
-        return [light_sensor, moisture_sensor]
+    return [line["light"], line["moisture"]]
 
 # activates pump for a given amount of time when moisture
 # sensor reads under a certain threshold
 def test_moisture(m):
     if int(m) < config_moisture_threshold:
-        GPIO.output(pump, 1)
-        time.sleep(config_water_time)
         GPIO.output(pump, 0)
-        print "Plant has been watered!"
+        time.sleep(config_water_time)
+        GPIO.output(pump, 1)
+        print "Watering plant"
+    else:
+        GPIO.output(pump, 1)
+        print "Moisture level adequate"
 
 # activates leds/piezo for a given amount of time when light
 # sensor reads under a certain threshold
 def test_light_leds(l):
-    if int(l) > 2 * config_light_threshold:
+    sensor_above_threshold = int(l) > config_light_threshold
+    if sensor_above_threshold:
         GPIO.output(leds, 0)
         time.sleep(config_leds_time)
         GPIO.output(leds, 1)
-        print "Leds were on"
+        print "Leds flashed"
+    else:
+        print "Lights off"
 
-    if int(l) > 2 * config_light_threshold:
+    if sensor_above_threshold:
         GPIO.output(piezo, 0)
         time.sleep(config_pieso_time)
         GPIO.output(piezo, 1)
         print "Piezo was buzzed"
+    else:
+        print "Buzzer off"
 
 # Posts sensor data to web service
 def upload_data(light, moisture):
@@ -105,10 +112,8 @@ def upload_data(light, moisture):
 # moisture sensor
 # used for console print and push notification
 def moisture_level(m):
-    if m > config_moisture_threshold * 2:
+    if m >= config_moisture_threshold:
         return "hydrated"
-    elif m <= config_moisture_threshold * 2 and m > config_moisture_threshold:
-        return "needs water soon"
     elif m < config_moisture_threshold:
         return "needs water now"
 
@@ -116,12 +121,10 @@ def moisture_level(m):
 # light sensor
 # used for console print and push notification
 def light_level(l):
-    if l > config_light_threshold * 2:
-        return "bright"
-    elif l <= config_light_threshold * 2 and l > config_light_threshold:
-        return "dim"
-    elif l < config_light_threshold:
+    if l >= config_light_threshold:
         return "dark"
+    elif l < config_light_threshold:
+        return "bright"
 
 def bytes2int(byes):
     result=0
@@ -139,3 +142,5 @@ while True:
         upload_data(light, moisture)
     except Exception as ex:
         print("There was an error uploading the sensor data")
+
+    print '\n'
