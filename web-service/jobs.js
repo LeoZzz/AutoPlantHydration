@@ -5,26 +5,22 @@ const subMilliseconds = require('date-fns/subMilliseconds')
 const isAfter = require('date-fns/isAfter')
 const isBefore = require('date-fns/isBefore')
 
-const LIGHT_THRESHOLD = 250
+const LIGHT_THRESHOLD = 750
 const MOISTURE_THRESHOLD = 250
 
 function moistureLevel(m) {
-  if (m > MOISTURE_THRESHOLD * 2) {
+  if (m >= MOISTURE_THRESHOLD) {
     return "hydrated"
-  } else if (m <= MOISTURE_THRESHOLD * 2 && m > MOISTURE_THRESHOLD) {
-    return "needs water soon"
   } else if (m < MOISTURE_THRESHOLD) {
     return "needs water now"
   }
 }
 
 function lightLevel(l) {
-  if (l > LIGHT_THRESHOLD * 2) {
-    return "bright"
-  } else if (l <= LIGHT_THRESHOLD * 2 && l > LIGHT_THRESHOLD) {
-    return "dim"
-  } else if (l < LIGHT_THRESHOLD) {
+  if (l >= LIGHT_THRESHOLD) {
     return "dark"
+  } else if (l < LIGHT_THRESHOLD) {
+    return "bright"
   }
 }
 
@@ -40,11 +36,11 @@ function sendPushoverMessage({ message, title } = {}) {
     priority: 1
   }
 
-  pushover.send(pushoverMessage, (err, result) => {
+  pushover.send(pushoverMessage, (err, { status } = {}) => {
     if (err) {
       throw err
     }
-    console.log(result)
+    if (status === 1) console.log("Notification sent")
   })
 }
 
@@ -83,6 +79,7 @@ function hourlyUpdate() {
   const lightLevelMessage = `Average Light Level: ${lightLevel(avgSensorLight)}`
   const moistureLevelMessage = `Average Moisture Level: ${moistureLevel(avgSensorMoisture)}`
 
+  console.log('Hourly update sent')
   sendPushoverMessage({
     message: `${lightLevelMessage}\n${moistureLevelMessage}`,
     title: 'Auto Plant Hydration - Hourly Update'
@@ -101,36 +98,38 @@ function criticalUpdate() {
   // go out once after the threshold has been breached
   if (avgSensorMoisture < MOISTURE_THRESHOLD && notifiedLowMoisture === 0) {
     messages.push('Warning - Low Moisture Level')
-    db.set('notifiedLowMoisture', true).write()
+    db.set('notifiedLowMoisture', 1).write()
   // moisture sensor has gone above threshold, and the status check has been set
   // in the database. this ensures that a notification will only go out once
   // after the threshold has been breached
   } else if (avgSensorMoisture >= MOISTURE_THRESHOLD && notifiedLowMoisture === 1) {
     messages.push('Update - Moisture Level Adequate')
-    db.set('notifiedLowMoisture', false).write()
+    db.set('notifiedLowMoisture', 0).write()
   }
 
   // light sensor has gone below threshold, and the status check has not
   // yet been set in the database. this ensures that a notification will only
   // go out once after the threshold has been breached
-  if (avgSensorLight < LIGHT_THRESHOLD && notifiedLowLight === 0) {
+  if (avgSensorLight >= LIGHT_THRESHOLD && notifiedLowLight === 0) {
     messages.push('Warning - Low Light Level')
-    db.set('notifiedLowLight', true).write()
+    db.set('notifiedLowLight', 1).write()
   // light sensor has gone above threshold, and the status check has been set
   // in the database. this ensures that a notification will only go out once
   // after the threshold has been breached
-  } else if (avgSensorLight >= LIGHT_THRESHOLD && notifiedLowLight === 1) {
+  } else if (avgSensorLight < LIGHT_THRESHOLD && notifiedLowLight === 1) {
     messages.push('Update - Light Level Adequate')
-    db.set('notifiedLowLight', false).write()
+    db.set('notifiedLowLight', 0).write()
   }
 
   if (messages.length > 0) {
+    console.log('Critical update sent')
     sendPushoverMessage({
       message: messages.join('\n'),
       title: 'Auto Plant Hydration - Critical Update'
     })
+  } else {
+    console.log('No critical update to send')
   }
-  console.log('No critical update to send')
 }
 
 // hourly update of current status of plant

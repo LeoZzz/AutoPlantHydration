@@ -24,7 +24,7 @@ WebService.use(bodyParser.urlencoded({ extended: true }))
 WebService.set('view engine', 'pug')
 
 WebService.get('/', (req, res) => {
-  const sensorData = db.get('sensorData').value()
+  const sensorData = db.get('sensorData').value().reverse()
   res.render('index', { format, sensorData })
 })
 WebService.use('/api', routes)
