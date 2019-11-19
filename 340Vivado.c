@@ -95,18 +95,18 @@ int main() {
 		btn = XGpio_DiscreteRead(&gpio, 1);
 		sw  = XGpio_DiscreteRead(&gpio1,1);
 		jbin  = XGpio_DiscreteRead(&gpio2,1);
-		digin = jbin & 0xF;
+		digin = jbin & 0xF;//port which can receive the data from resbarrypi
 		rpiin = (jbin & 0xF0)>>4;
 
 		if ((digin&0b0100)) // light sensor
 			led = 0x00000000;
 		else
-				led = sw;
+			led = sw;
 
 		if ((digin&0b0010)) // piezo buzzer
-			jcout = 0;
+			jcout = 0;//no sound
 		else
-			jcout = 3;
+			jcout = 3;//high sound
 
 		XGpio_DiscreteWrite(&gpio, 2, led);
 		XGpio_DiscreteWrite(&gpio3, 1, jcout);
