@@ -95,21 +95,21 @@ int main() {
 		btn = XGpio_DiscreteRead(&gpio, 1);
 		sw  = XGpio_DiscreteRead(&gpio1,1);
 		jbin  = XGpio_DiscreteRead(&gpio2,1);
-		digin = jbin & 0xF;
+		digin = jbin & 0xF; // the port which Basys3 receive data from resberrypi
 		rpiin = (jbin & 0xF0)>>4;
 
-		if ((digin&0b0100)) // light sensor
-			led = 0x00000000;
+		if ((digin&0b0100)) // control LED to open by signal from resberrypi
+			led = 0x00000000; // all light
 		else
-				led = sw;
+			led = sw; // no light
 
-		if ((digin&0b0010)) // piezo buzzer
-			jcout = 0;
+		if ((digin&0b0010)) // control piezo buzzer to open by signal from resberrypi
+			jcout = 0; // silence
 		else
-			jcout = 3;
+			jcout = 3; // with sound
 
-		XGpio_DiscreteWrite(&gpio, 2, led);
-		XGpio_DiscreteWrite(&gpio3, 1, jcout);
+		XGpio_DiscreteWrite(&gpio, 2, led); // LED open or close
+		XGpio_DiscreteWrite(&gpio3, 1, jcout); //piezo buzzer open or close
 		XGpio_DiscreteWrite(&gpio4, 1, bcdout);
 		xil_printf("\rbutton state: %08x\n",btn);
 		xil_printf("\r jbin: %08x, digin: %08x, rpiin: %08x\n",jbin,digin,rpiin);
