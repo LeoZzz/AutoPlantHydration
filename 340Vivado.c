@@ -95,15 +95,15 @@ int main() {
 		btn = XGpio_DiscreteRead(&gpio, 1);
 		sw  = XGpio_DiscreteRead(&gpio1,1);
 		jbin  = XGpio_DiscreteRead(&gpio2,1);
-		digin = jbin & 0xF; // the port which receive the signal from resberrypi, one byte per time
+		digin = jbin & 0xF; // the port which receive the signal from rasberrypi, one byte per time
 		rpiin = (jbin & 0xF0)>>4;
 
-		if ((digin&0b0100)) // control LED by the signal from resberrypi
+		if ((digin&0b0100)) // control LED by the signal from rasberrypi
 			led = 0x00000000; // turn all LED off
 		else
 			led = sw; // turn all LED on
 
-		if ((digin&0b0010)) // control piezo buzzer by signal from resberrypi
+		if ((digin&0b0010)) // control piezo buzzer by signal from rasberrypi
 			jcout = 0; // no sound
 		else
 			jcout = 3; // high sound
