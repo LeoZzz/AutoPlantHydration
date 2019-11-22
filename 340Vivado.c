@@ -95,21 +95,21 @@ int main() {
 		btn = XGpio_DiscreteRead(&gpio, 1);
 		sw  = XGpio_DiscreteRead(&gpio1,1);
 		jbin  = XGpio_DiscreteRead(&gpio2,1);
-		digin = jbin & 0xF;
+		digin = jbin & 0xF; // the port which receive the signal from resberrypi, one byte per time
 		rpiin = (jbin & 0xF0)>>4;
 
-		if ((digin&0b0100)) // control 
-			led = 0x00000000;
+		if ((digin&0b0100)) // control LED by the signal from resberrypi
+			led = 0x00000000; // turn all LED off
 		else
-			led = sw;
+			led = sw; // turn all LED on
 
-		if ((digin&0b0010)) // piezo buzzer
-			jcout = 0;
+		if ((digin&0b0010)) // control piezo buzzer by signal from resberrypi
+			jcout = 0; // no sound
 		else
-			jcout = 3;
+			jcout = 3; // high sound
 
-		XGpio_DiscreteWrite(&gpio, 2, led);
-		XGpio_DiscreteWrite(&gpio3, 1, jcout);
+		XGpio_DiscreteWrite(&gpio, 2, led); // turn on/turn off the LED
+		XGpio_DiscreteWrite(&gpio3, 1, jcout); // turn on/turn off the buzzer
 		XGpio_DiscreteWrite(&gpio4, 1, bcdout);
 		xil_printf("\rbutton state: %08x\n",btn);
 		xil_printf("\r jbin: %08x, digin: %08x, rpiin: %08x\n",jbin,digin,rpiin);
