@@ -98,10 +98,10 @@ int main() {
 		digin = jbin & 0xF;
 		rpiin = (jbin & 0xF0)>>4;
 
-		if ((digin&0b0100)) // light sensor
+		if ((digin&0b0100)) // control 
 			led = 0x00000000;
 		else
-				led = sw;
+			led = sw;
 
 		if ((digin&0b0010)) // piezo buzzer
 			jcout = 0;
